@@ -1,0 +1,10 @@
+langchain_community
+langchain_aws
+langchain>=0.0.150
+boto3
+fastapi
+uvicorn
+jinja2
+transformers
+pygments
+python-gitlab

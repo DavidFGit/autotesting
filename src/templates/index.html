@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GerAIs Auto Testing</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #ff8c00, #ffa500, #ffd700);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #chat-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+        }
+        #chat-header {
+            background-color: #ff6600;
+            padding: 20px;
+            text-align: center;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+        #chat-header h1 {
+            color: #fff;
+            font-size: 24px;
+            margin: 0;
+        }
+        #chat-header img {
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        #chat-history {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            margin-bottom: 20px;
+        }
+        .user-message {
+            background-color: #ff9933;
+            color: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 80%;
+            align-self: flex-end;
+        }
+        .bot-message {
+            background-color: #fff;
+            color: #333;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 80%;
+            align-self: flex-start;
+            white-space: pre-wrap;
+        }
+        #query-form {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+        #query-input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            background-color: #fff;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #ff6600;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="chat-header">
+            <h1>GerAIs Auto Testing<img src="/static/logo1.png" alt="Itaú Logo" height="60"></h1>
+        </div>
+        <div id="chat-history">
+            <!-- Aquí se mostrarán los mensajes del chat -->
+        </div>
+        <form id="query-form">
+            <input type="text" id="query-input" placeholder="Ingrese su consulta" required>
+            <button type="submit">Enviar</button>
+        </form>
+    </div>
+
+    <script>
+        const chatHistory = document.getElementById('chat-history');
+        const queryForm = document.getElementById('query-form');
+        const queryInput = document.getElementById('query-input');
+
+        queryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const query = queryInput.value.trim();
+            if (query !== '') {
+                addMessageToChat('user', query);
+                queryInput.value = '';
+
+                try {
+                    const response = await fetch('/query', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ query: query })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.error) {
+                            addMessageToChat('bot', `Error: ${data.error}`);
+                        } else {
+                            addMessageToChat('bot', data.result);
+                        }
+                    } else {
+                        addMessageToChat('bot', 'Error en la solicitud');
+                    }
+                } catch (error) {
+                    addMessageToChat('bot', 'Error en la comunicación con el servidor');
+                }
+            }
+        });
+
+        function addMessageToChat(sender, message) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', `${sender}-message`);
+            
+            const messageContent = document.createElement('div');
+            messageContent.innerHTML = message.replace(/\n/g, '<br>');
+            messageElement.appendChild(messageContent);
+            
+            chatHistory.appendChild(messageElement);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+    </script>
+</body>
+</html>
