@@ -93,6 +93,18 @@
             margin-left: 10px;
             cursor: pointer;
         }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
     </style>
 </head>
 <body>
@@ -109,6 +121,7 @@
         </form>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         const chatHistory = document.getElementById('chat-history');
         const queryForm = document.getElementById('query-form');
@@ -151,7 +164,15 @@
             messageElement.classList.add('message', `${sender}-message`);
             
             const messageContent = document.createElement('div');
-            messageContent.innerHTML = message.replace(/\n/g, '<br>');
+            
+            if (message.includes('|')) {
+                message = '<table>' + message.replace(/\n/g, '</tr><tr>').replace(/\|/g, '</td><td>') + '</table>';
+                message = message.replace(/<td><\/td>/g, '<td>&nbsp;</td>');
+                message = message.replace(/<tr><\/tr>/g, '<tr><td>&nbsp;</td></tr>');
+            }
+            
+            messageContent.innerHTML = marked(message);
+            
             messageElement.appendChild(messageContent);
             
             chatHistory.appendChild(messageElement);
