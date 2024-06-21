@@ -8,3 +8,7 @@ jinja2
 transformers
 pygments
 python-gitlab
+anthropic
+requests
+python-magic
+libmagic 

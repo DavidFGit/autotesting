@@ -1,6 +1,9 @@
 # Usamos una imagen base de Python
 FROM python:3.8-slim-buster
 
+# Instalamos libmagic1
+RUN apt-get update && apt-get install -y libmagic1
+
 # Configuramos el directorio de trabajo
 WORKDIR /app
 

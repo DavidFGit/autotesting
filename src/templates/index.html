@@ -66,6 +66,7 @@
             max-width: 80%;
             align-self: flex-start;
             white-space: pre-wrap;
+            border: 1px solid #ff9933;
         }
         #query-form {
             display: flex;
@@ -78,10 +79,41 @@
         #query-input {
             flex: 1;
             padding: 10px;
-            border: none;
+            border: 1px solid #ff9933;
             border-radius: 5px;
             font-size: 16px;
             background-color: #fff;
+            resize: none;
+            min-height: 20px;
+            max-height: 100px;
+            overflow-y: auto;
+            margin-right: 10px;
+        }
+        #image-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            background-color: #ff9933;
+            border-radius: 50%;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        #image-input-label img {
+            width: 20px;
+            height: 20px;
+        }
+        #image-input {
+            display: none;
+        }
+        #model-select {
+            padding: 10px;
+            border: 1px solid #ff9933;
+            border-radius: 5px;
+            font-size: 16px;
+            background-color: #fff;
+            margin-right: 10px;
         }
         button {
             padding: 10px 20px;
@@ -90,23 +122,61 @@
             border: none;
             border-radius: 5px;
             font-size: 16px;
-            margin-left: 10px;
             cursor: pointer;
         }
-        table {
-            border-collapse: collapse;
-            width: 100%;
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            overflow-x: auto;
         }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
+        code {
+            font-family: monospace;
+        }
+        .table-container {
+            overflow-x: auto;
+            max-width: 100%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1em;
+            font-size: 0.9em;
+            border-radius: 5px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        }
+        table thead tr {
+            background-color: #ff6600;
+            color: #ffffff;
             text-align: left;
         }
-        th {
-            background-color: #f2f2f2;
+        table th,
+        table td {
+            padding: 12px 15px;
+        }
+        table tbody tr {
+            border-bottom: 1px solid #dddddd;
+        }
+        table tbody tr:nth-of-type(even) {
+            background-color: #f3f3f3;
+        }
+        table tbody tr:last-of-type {
+            border-bottom: 2px solid #ff6600;
+        }
+        blockquote {
+            border-left: 4px solid #ff6600;
+            padding-left: 15px;
+            margin-left: 0;
+            font-style: italic;
+        }
+        .message-image {
+            max-width: 100%;
+            max-height: 300px;
+            margin-top: 10px;
+            border-radius: 5px;
         }
     </style>
 </head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.17/marked.min.js"></script>
 <body>
     <div id="chat-container">
         <div id="chat-header">
@@ -115,32 +185,58 @@
         <div id="chat-history">
             <!-- Aquí se mostrarán los mensajes del chat -->
         </div>
-        <form id="query-form">
-            <input type="text" id="query-input" placeholder="Ingrese su consulta" required>
+        <form id="query-form" enctype="multipart/form-data">
+            <div contenteditable="true" id="query-input" placeholder="Ingrese su consulta" required></div>
+            <label for="image-input" id="image-input-label">
+                <img src="/static/clip-icon.png" alt="Attach Image">
+            </label>
+            <input type="file" id="image-input" accept="image/*">
+            <select id="model-select">
+                <option value="meta.llama3-8b-instruct-v1:0">Llama 3 8B Instruct</option>
+                <option value="meta.llama3-70b-instruct-v1:0">Llama 3 70B Instruct</option>
+                <option value="mistral.mistral-large-2402-v1:0" selected>Mistral Large</option>
+                <option value="mistral.mixtral-8x7b-instruct-v0:1">Mixtral 8x7B Instruct</option>
+                <option value="anthropic.claude-3-5-sonnet-20240620-v1:0">Claude 3.5 Sonnet</option>
+                <option value="anthropic.claude-3-sonnet-20240229-v1:0">Claude 3 Sonnet</option>
+                <option value="anthropic.claude-3-haiku-20240307-v1:0">Claude 3 Haiku</option>
+                <option value="anthropic.claude-v2:1">Claude 2.1</option>
+            </select>
             <button type="submit">Enviar</button>
         </form>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
     <script>
         const chatHistory = document.getElementById('chat-history');
         const queryForm = document.getElementById('query-form');
         const queryInput = document.getElementById('query-input');
+        const imageInput = document.getElementById('image-input');
 
         queryForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const query = queryInput.value.trim();
-            if (query !== '') {
-                addMessageToChat('user', query);
-                queryInput.value = '';
+            const query = queryInput.innerText.trim();
+            const imageFile = imageInput.files[0];
+            const modelId = document.getElementById('model-select').value;
+
+            if (query !== '' || imageFile) {
+                let imageUrl = null;
+                if (imageFile) {
+                    imageUrl = URL.createObjectURL(imageFile);
+                }
+                addMessageToChat('user', query, imageUrl);
+                queryInput.innerText = '';
+                imageInput.value = '';
+
+                const formData = new FormData();
+                formData.append('query', query);
+                formData.append('model_id', modelId);
+                if (imageFile) {
+                    formData.append('image', imageFile);
+                }
 
                 try {
                     const response = await fetch('/query', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ query: query })
+                        body: formData
                     });
 
                     if (response.ok) {
@@ -159,21 +255,31 @@
             }
         });
 
-        function addMessageToChat(sender, message) {
+        function addMessageToChat(sender, message, image = null) {
             const messageElement = document.createElement('div');
             messageElement.classList.add('message', `${sender}-message`);
             
             const messageContent = document.createElement('div');
-            
-            if (message.includes('|')) {
-                message = '<table>' + message.replace(/\n/g, '</tr><tr>').replace(/\|/g, '</td><td>') + '</table>';
-                message = message.replace(/<td><\/td>/g, '<td>&nbsp;</td>');
-                message = message.replace(/<tr><\/tr>/g, '<tr><td>&nbsp;</td></tr>');
-            }
-            
-            messageContent.innerHTML = marked(message);
-            
+            messageContent.innerHTML = marked.parse(message);
+
+            // Envolver las tablas en un contenedor con desplazamiento horizontal
+            const tables = messageContent.querySelectorAll('table');
+            tables.forEach(table => {
+                const container = document.createElement('div');
+                container.classList.add('table-container');
+                table.parentNode.insertBefore(container, table);
+                container.appendChild(table);
+            });
+
             messageElement.appendChild(messageContent);
+
+            if (image) {
+                const messageImage = document.createElement('img');
+                messageImage.src = image;
+                messageImage.alt = 'Uploaded Image';
+                messageImage.classList.add('message-image');
+                messageElement.appendChild(messageImage);
+            }
             
             chatHistory.appendChild(messageElement);
             chatHistory.scrollTop = chatHistory.scrollHeight;
